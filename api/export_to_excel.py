@@ -103,3 +103,125 @@ def excel_create(request, id):
     wb.save(response)
 
     return response
+
+def exsel_report(request , from_date , to_date ):
+
+    print(from_date , to_date)
+    response = HttpResponse(content_type='application/ms-excel')
+    response['Content-Disposition'] = 'attachment; filename="ACR Print '+ str(date.today()) +'.xls"'
+
+    wb = xlwt.Workbook(encoding='utf-8')
+    ws = wb.add_sheet('recibo')
+
+    row_num = 0
+    font_style = xlwt.XFStyle()
+    font_style.font.bold=True
+
+    columns = ['№' , 'Qr code' , 'Название' , 'Кол-ва' , 'Eдиница' , 'Цена' , 'Цена(продажа)' , 'Оплачено' , 'Cозданo' , 'Общая сумма' ]
+    
+    for col_num in range(len(columns)):
+        ws.write(row_num, col_num, columns[col_num], font_style)
+
+    # Vatebles
+    rows = []
+    temp_quantity = 0
+    temp_price = 0
+    temp_selling_price = 0
+    temp_paid = 0
+    temp_total_price = 0
+    count = 1
+
+    if from_date and to_date :
+        date_format = '%d-%m-%Y'
+        from_date = datetime.strptime(from_date, date_format)
+        to_date = datetime.strptime(to_date, date_format)
+        to_date += timedelta(days=1)
+        for action in ActionModel.objects.filter(created__range=[from_date, to_date]):
+            
+            temp = []
+            temp.append(count)
+            temp.append(action.barcode)
+            temp.append(action.product_name)
+            temp.append(action.quantity)
+            temp.append(action.birlik)
+            temp.append(action.del_price)
+            temp.append(action.selling_price)
+            temp.append(action.paid)
+            temp.append(str(action.created)[0:10])        
+            temp.append(round(float(action.quantity)*float(action.selling_price),2))
+
+            temp_total_price += round(float(action.quantity)*float(action.selling_price),2)
+            temp_quantity += action.quantity
+            temp_price += round(float(action.quantity)*float(action.del_price),2)
+            temp_selling_price += round(float(action.quantity)*float(action.selling_price),2)
+            temp_paid += action.paid
+
+
+            rows.append(temp)
+            count += 1 
+        rows.append(" ")
+
+        temp1 = []
+        temp1.append(' ')
+        temp1.append(' ')
+        temp1.append(' ')
+        temp1.append(temp_quantity)
+        temp1.append(' ')
+        temp1.append(temp_price)
+        temp1.append(temp_selling_price)
+        temp1.append(temp_paid)
+        temp1.append(' ')
+        temp1.append(temp_total_price)
+        rows.append(temp1)
+        rows.append(" ")
+        rows.append(['pribl' , float(temp_paid) - float(temp_price)])
+    else: 
+        for action in ActionModel.objects.all():
+            temp = []
+            temp.append(count)
+            temp.append(action.barcode)
+            temp.append(action.product_name)
+            temp.append(action.quantity)
+            temp.append(action.birlik)
+            temp.append(action.del_price)
+            temp.append(action.selling_price)
+            temp.append(action.paid)
+            temp.append(str(action.created)[0:10])        
+            temp.append(round(float(action.quantity)*float(action.selling_price),2))
+
+            temp_total_price += round(float(action.quantity)*float(action.selling_price),2)
+            temp_quantity += action.quantity
+            temp_price += round(float(action.quantity)*float(action.del_price),2)
+            temp_selling_price += round(float(action.quantity)*float(action.selling_price),2)
+            temp_paid += action.paid
+
+
+            rows.append(temp)
+            count += 1 
+        rows.append(" ")
+
+        temp1 = []
+        temp1.append(' ')
+        temp1.append(' ')
+        temp1.append(' ')
+        temp1.append(temp_quantity)
+        temp1.append(' ')
+        temp1.append(temp_price)
+        temp1.append(temp_selling_price)
+        temp1.append(temp_paid)
+        temp1.append(' ')
+        temp1.append(temp_total_price)
+        rows.append(temp1)
+        rows.append(" ")
+        rows.append(['pribl' , float(temp_paid) - float(temp_price)])
+
+    for row in rows:
+        row_num += 1
+        for col_num in range(len(row)):
+            ws.write(row_num, col_num, row[col_num], font_style)
+    wb.save(response)
+    return response
+
+
+
+
